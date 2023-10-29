@@ -3,19 +3,23 @@ package com.hackerrank.api.controller;
 import java.util.List;
 import java.util.Optional;
 
+import com.hackerrank.api.exception.ResponseNotFoundException;
+import com.hackerrank.api.mapper.FlightMapper;
 import com.hackerrank.api.model.FlightModel;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import com.hackerrank.api.model.Flight;
 import com.hackerrank.api.repository.FlightRepository;
 
+import static com.hackerrank.api.constants.FlightsConstants.*;
+
 @RestController
 public class FlightController {
+
 
     @Autowired
     private FlightRepository repository;
@@ -23,13 +27,7 @@ public class FlightController {
     @PostMapping("/flight")
     public ResponseEntity<FlightModel> createFlight(@RequestBody Flight flight) {
         Flight flightCreated = repository.save(flight);
-        FlightModel model = new FlightModel();
-        model.setId(flightCreated.getId().intValue());
-        model.setDestination(flight.getDestination());
-        model.setFlight(flight.getFlight());
-        model.setOrigin(flightCreated.getOrigin());
-        model.setSpeedSeries(flightCreated.getSpeedSeries());
-        return ResponseEntity.status(HttpStatus.CREATED).body(model);
+        return ResponseEntity.status(HttpStatus.CREATED).body(FlightMapper.mapToDto(flightCreated, new FlightModel()));
     }
 
     @GetMapping("/flight")
@@ -38,15 +36,16 @@ public class FlightController {
             return ResponseEntity.ok().body(repository.findByOrigin(origin.get()));
         }
         if (orderBy.isPresent()) {
-            String val = orderBy.get();
-            if ("destination".equalsIgnoreCase(val)) {
-                return ResponseEntity.ok().body(repository.findAll(Sort.by("destination")));
-            } else if ("-destination".equalsIgnoreCase(val)) {
-                return ResponseEntity.ok().body(repository.findAll(Sort.by(Sort.Direction.DESC, "destination")));
+            Optional<ResponseEntity<List<Flight>>> response = getOrderedListResponse(orderBy);
+            if (response.isPresent()) {
+                return response.get();
+            } else {
+                throw new ResponseNotFoundException(FLIGHT_RESOURCE, ID_RESOURCE, ORDERBY_RESOURCE);
             }
         }
         return ResponseEntity.ok().body(repository.findAll());
     }
+
 
     @GetMapping("/flight/{id}")
     public ResponseEntity<Flight> findFlightById(@PathVariable Integer id) {
@@ -54,7 +53,17 @@ public class FlightController {
         if (flightOptional.isPresent()) {
             return ResponseEntity.ok().body(repository.findById(id).get());
         } else {
-            return ResponseEntity.notFound().build();
+            throw new ResponseNotFoundException(FLIGHT_RESOURCE, ID_RESOURCE, id.toString());
         }
+    }
+
+    private Optional<ResponseEntity<List<Flight>>> getOrderedListResponse(Optional<String> orderBy) {
+        String val = orderBy.get();
+        if (DESTINATION.equalsIgnoreCase(val)) {
+            return Optional.of(ResponseEntity.ok().body(repository.findAll(Sort.by("destination"))));
+        } else if (REVERSE_DESTINATION.equalsIgnoreCase(val)) {
+            return Optional.of(ResponseEntity.ok().body(repository.findAll(Sort.by(Sort.Direction.DESC, "destination"))));
+        }
+        return Optional.empty();
     }
 }
