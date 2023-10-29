@@ -3,6 +3,8 @@ package com.hackerrank.api.controller;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -19,18 +21,18 @@ public class FlightController {
   private FlightRepository repository;
 
   @PostMapping("/flight")
-  public ResponseEntity<Flight> createFlight(@RequestBody Flight flight){
-    repository.save(flight);
-    return null;
+  public ResponseEntity<Flight> createFlight( @RequestBody Flight flight){
+    Flight flightCreated = repository.save(flight);
+    return ResponseEntity.status(HttpStatus.CREATED).body(flightCreated);
   }
 
-  @GetMapping("/flight")
-  public ResponseEntity<List<Flight>> getAllFlights(){
-    return ResponseEntity.ok().body(repository.findAll());
-  }
+  // @GetMapping("/flight")
+  // public ResponseEntity<List<Flight>> getAllFlights(){
+  //   return ResponseEntity.ok().body(repository.findAll());
+  // }
 
-  @GetMapping("/flight")
-  public ResponseEntity<Flight> findFlightById(Integer id){
-    return ResponseEntity.ok().body(repository.findById(id).get());
-  }
+  // @GetMapping("/flight")
+  // public ResponseEntity<Flight> findFlightById(Integer id){
+  //   return ResponseEntity.ok().body(repository.findById(id).get());
+  // }
 }
